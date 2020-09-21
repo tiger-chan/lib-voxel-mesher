@@ -9,6 +9,9 @@ namespace tc
 {
 template <typename data_t> struct base_vector3 {
 	base_vector3() = default;
+	base_vector3(data_t x, data_t y = 0, data_t z = 0) : x{ x }, y{ y }, z{ z }
+	{
+	}
 
 	template <typename Other>
 	base_vector3(const base_vector3<Other> &other)
