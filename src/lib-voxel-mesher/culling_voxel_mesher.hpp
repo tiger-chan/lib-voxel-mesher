@@ -24,9 +24,6 @@ class culling_voxel_mesher {
 		int32_t d_w{ static_cast<int32_t>(width) };
 		int32_t d_h{ static_cast<int32_t>(height) };
 		int32_t d_d{ static_cast<int32_t>(depth) };
-		int32_t y_offset{ d_w };
-		int32_t z_offset{ d_w * d_h };
-		int32_t total_size{ z_offset * d_d };
 
 		std::vector<int32_t> vert_map{};
 		mesher_result result;
