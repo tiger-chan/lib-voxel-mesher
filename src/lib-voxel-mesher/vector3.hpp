@@ -8,13 +8,13 @@
 namespace tc
 {
 template <typename data_t> struct base_vector3 {
-	base_vector3() = default;
-	base_vector3(data_t x, data_t y = 0, data_t z = 0) : x{ x }, y{ y }, z{ z }
+	constexpr base_vector3() = default;
+	constexpr base_vector3(data_t x, data_t y = 0, data_t z = 0) : x{ x }, y{ y }, z{ z }
 	{
 	}
 
 	template <typename Other>
-	base_vector3(const base_vector3<Other> &other)
+	constexpr base_vector3(const base_vector3<Other> &other)
 		: x{ static_cast<data_t>(other.x) }, y{ static_cast<data_t>(other.y) }, z{
 			  static_cast<data_t>(other.z)
 		  }
@@ -22,14 +22,14 @@ template <typename data_t> struct base_vector3 {
 	}
 
 	template <typename Other>
-	base_vector3(const Other &other)
+	constexpr base_vector3(const Other &other)
 		: x{ static_cast<data_t>(other.X) }, y{ static_cast<data_t>(other.Y) }, z{
 			  static_cast<data_t>(other.Z)
 		  }
 	{
 	}
 
-	const data_t &operator[](size_t i) const
+	constexpr const data_t &operator[](size_t i) const
 	{
 		VOXEL_MESHER_ASSERT(i > 2);
 		switch (i) {
@@ -42,12 +42,12 @@ template <typename data_t> struct base_vector3 {
 		}
 	}
 
-	data_t &operator[](size_t i)
+	constexpr data_t &operator[](size_t i)
 	{
 		return const_cast<data_t &>(std::as_const(*this)[i]);
 	}
 
-	base_vector3 &operator+=(const base_vector3 &other)
+	constexpr base_vector3 &operator+=(const base_vector3 &other)
 	{
 		x += other.x;
 		y += other.y;
@@ -56,13 +56,13 @@ template <typename data_t> struct base_vector3 {
 		return *this;
 	}
 
-	base_vector3 operator+(const base_vector3 &other)
+	constexpr base_vector3 operator+(const base_vector3 &other)
 	{
 		auto orig = *this;
 		return orig += other;
 	}
 
-	base_vector3 &operator-=(const base_vector3 &other)
+	constexpr base_vector3 &operator-=(const base_vector3 &other)
 	{
 		x -= other.x;
 		y -= other.y;
@@ -71,13 +71,13 @@ template <typename data_t> struct base_vector3 {
 		return *this;
 	}
 
-	base_vector3 operator-(const base_vector3 &other)
+	constexpr base_vector3 operator-(const base_vector3 &other)
 	{
 		auto orig = *this;
 		return orig -= other;
 	}
 
-	base_vector3 &operator*=(data_t scalar)
+	constexpr base_vector3 &operator*=(data_t scalar)
 	{
 		x *= scalar;
 		y *= scalar;
@@ -85,14 +85,14 @@ template <typename data_t> struct base_vector3 {
 		return *this;
 	}
 
-	base_vector3 operator*(data_t scalar) const
+	constexpr base_vector3 operator*(data_t scalar) const
 	{
 		auto orig = *this;
 		orig *= scalar;
 		return orig;
 	}
 
-	base_vector3 &operator/=(data_t scalar)
+	constexpr base_vector3 &operator/=(data_t scalar)
 	{
 		x /= scalar;
 		y /= scalar;
@@ -100,19 +100,19 @@ template <typename data_t> struct base_vector3 {
 		return *this;
 	}
 
-	base_vector3 operator/(data_t scalar) const
+	constexpr base_vector3 operator/(data_t scalar) const
 	{
 		auto orig = this;
 		orig /= scalar;
 		return orig;
 	}
 
-	data_t dot(const base_vector3 &other) const
+	constexpr data_t dot(const base_vector3 &other) const
 	{
 		return x * other.x + y * other.y + z * other.z;
 	}
 
-	base_vector3 cross(const base_vector3 &other) const
+	constexpr base_vector3 cross(const base_vector3 &other) const
 	{
 		auto orig = *this;
 		orig.x = (y * other.z) - (z * other.y);
@@ -121,7 +121,7 @@ template <typename data_t> struct base_vector3 {
 		return orig;
 	}
 
-	double magnitude_sqrd() const
+	constexpr double magnitude_sqrd() const
 	{
 		return x * x + y * y + z * z;
 	}

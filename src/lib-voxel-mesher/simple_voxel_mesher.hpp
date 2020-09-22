@@ -10,16 +10,13 @@ namespace tc
 class simple_voxel_mesher {
     public:
 	template <typename Iter>
-	inline mesher_result eval(Iter volume_begin, Iter volume_end, size_t width, size_t height,
-				  size_t depth) const
+	inline mesher_result eval(Iter volume_begin, Iter volume_end) const
 	{
-		return eval(std::forward<Iter>(volume_begin), std::forward<Iter>(volume_end), width,
-			    height, depth, [](const auto &i) { return !!(*i); });
+		return eval(std::forward<Iter>(volume_begin), std::forward<Iter>(volume_end), [](const auto &i) { return !!(*i); });
 	}
 
 	template <typename Iter, typename Predicate>
-	mesher_result eval(Iter volume_begin, Iter volume_end, size_t width, size_t height,
-			   size_t depth, Predicate &&p) const
+	mesher_result eval(Iter volume_begin, Iter volume_end, Predicate &&p) const
 	{
 		using vert_t = base_vertex<int32_t>;
 		mesher_result result;
@@ -88,9 +85,10 @@ class simple_voxel_mesher {
 							auto normal = cb.cross(ab);
 							cb.normalize_quick();
 
-							auto insert_vert = [&vert_map, &vertices](auto &key,
-										  auto &map_key,
-										  auto vert) {
+							auto insert_vert = [&vert_map, &vertices](
+										   auto &key,
+										   auto &map_key,
+										   auto vert) {
 								if (map_key >= 0) {
 									key = map_key;
 									return;
@@ -120,5 +118,10 @@ class simple_voxel_mesher {
 
 		return result;
 	}
+
+	size_t width{ 0 };
+	size_t height{ 0 };
+	size_t depth{ 0 };
+	bool draw_at_boundry{ false };
 };
 } // namespace tc
