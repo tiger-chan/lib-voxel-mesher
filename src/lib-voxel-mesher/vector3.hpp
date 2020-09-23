@@ -56,7 +56,7 @@ template <typename data_t> struct base_vector3 {
 		return *this;
 	}
 
-	constexpr base_vector3 operator+(const base_vector3 &other)
+	constexpr base_vector3 operator+(const base_vector3 &other) const
 	{
 		auto orig = *this;
 		return orig += other;
@@ -71,7 +71,7 @@ template <typename data_t> struct base_vector3 {
 		return *this;
 	}
 
-	constexpr base_vector3 operator-(const base_vector3 &other)
+	constexpr base_vector3 operator-(const base_vector3 &other) const
 	{
 		auto orig = *this;
 		return orig -= other;

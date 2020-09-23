@@ -35,11 +35,6 @@ class culling_voxel_mesher {
 		vertices.reserve(total_vert_count);
 		quads.reserve(height * width * depth * 6);
 
-		auto is_in_bounds = [w = d_w, h = d_h, d = d_d](const auto &v) {
-			return (0.0 <= v.x && v.x < w) && (0.0 <= v.y && v.y < h) &&
-			       (0.0 <= v.z && v.z < d);
-		};
-
 		auto volume_check = [pred, b = volume_begin, e = volume_end](auto pred, auto c) {
 			if (c < b || c >= e) {
 				return false;
@@ -82,25 +77,8 @@ class culling_voxel_mesher {
 					const bool in_bounds = is_in_bounds(vert);
 					auto state = in_bounds && volume_check(pred, volume);
 
-					std::array<vector3d, 3> nc{
-						vert + vertex{ 1.0 }, vert + vertex{ 0.0, 1.0 },
-						vert + vertex{ 0.0, 0.0, 1.0 }
-					};
-
-					std::array<int32_t, 3> ni{
-						calc_index(nc[0]),
-						calc_index(nc[1]),
-						calc_index(nc[2]),
-					};
-
-					std::array<bool, 3> n{
-						is_in_bounds(nc[0]) &&
-							volume_check(pred, volume_begin + ni[0]),
-						is_in_bounds(nc[1]) &&
-							volume_check(pred, volume_begin + ni[1]),
-						is_in_bounds(nc[2]) &&
-							volume_check(pred, volume_begin + ni[2]),
-					};
+					auto n = find_boundries(vert, volume_begin, pred,
+								volume_check);
 
 					for (auto d = 0; d < boundry::count; ++d) {
 						if (state == n[d]) {
@@ -128,8 +106,8 @@ class culling_voxel_mesher {
 
     private:
 	template <typename VertInsert>
-	auto add_quad(int32_t direction, bool state, const vertex &vert,
-			     std::vector<quad> &quads, VertInsert vert_insert) const 
+	auto add_quad(int32_t direction, bool state, const vertex &vert, std::vector<quad> &quads,
+		      VertInsert vert_insert) const
 	{
 		constexpr auto dir = build_directions();
 
@@ -178,10 +156,40 @@ class culling_voxel_mesher {
 		quads.emplace_back(std::move(q));
 	}
 
-	auto calc_index(const vertex &vert) const {
+	auto calc_index(const vertex &vert) const
+	{
 		vector3i i{ vert };
 		return i.z * width * height + i.y * width + i.x;
 	};
+
+	template <typename Iter, typename Predicate, typename VolumeCheck>
+	auto find_boundries(const vertex &vert, Iter volume, Predicate &&pred,
+			    VolumeCheck &&volume_check) const
+	{
+		std::array<vector3d, 3> nc{ vert + vertex{ 1.0 }, vert + vertex{ 0.0, 1.0 },
+					    vert + vertex{ 0.0, 0.0, 1.0 } };
+
+		std::array<int32_t, 3> ni{
+			calc_index(nc[0]),
+			calc_index(nc[1]),
+			calc_index(nc[2]),
+		};
+
+		std::array<bool, 3> n{
+			is_in_bounds(nc[0]) && volume_check(pred, volume + ni[0]),
+			is_in_bounds(nc[1]) && volume_check(pred, volume + ni[1]),
+			is_in_bounds(nc[2]) && volume_check(pred, volume + ni[2]),
+		};
+
+		return n;
+	}
+
+	auto is_in_bounds(const vertex &v) const
+	{
+		return (0.0 <= v.x && v.x < static_cast<int32_t>(width)) &&
+		       (0.0 <= v.y && v.y < static_cast<int32_t>(height)) &&
+		       (0.0 <= v.z && v.z < static_cast<int32_t>(depth));
+	}
 
 	static constexpr auto build_directions()
 	{
