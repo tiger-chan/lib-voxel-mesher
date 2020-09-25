@@ -20,17 +20,65 @@ class culling_voxel_mesher {
 	template <typename Iter, typename Predicate>
 	mesher_result eval(Iter volume_begin, Iter volume_end, Predicate &&pred) const
 	{
+		if (add_border) {
+			int32_t dw{ static_cast<int32_t>(width) };
+			int32_t dh{ static_cast<int32_t>(height) };
+			int32_t dd{ static_cast<int32_t>(depth) };
+			int32_t bw{ dw + 2 };
+			int32_t bh{ dh + 2 };
+			int32_t bd{ dd + 2 };
+
+			std::vector<Iter> volume;
+			volume.resize(bw * bh * bd, volume_end);
+			for (auto z = 0; z < dd; ++z) {
+				auto zb = (z + 1) * bh * bw;
+				auto zi = z * dh * dw;
+				for (auto y = 0; y < dh; ++y) {
+					auto yb = (y + 1) * bh + zb;
+					auto yi = y * dh + zi;
+					for (auto x = 0; x < dw; ++x) {
+						auto b = (x + 1) + yb;
+						auto i = x + yi;
+						volume[b] = volume_begin + i;
+					}
+				}
+			}
+
+			return work(std::begin(volume), std::end(volume),
+				    [&pred, e = std::end(volume)](auto it) {
+					    if (it == e) {
+						    return false;
+					    }
+					    return pred(*it);
+				    });
+		} else {
+			return work(volume_begin, volume_end, std::forward<Predicate>(pred));
+		}
+	}
+
+	size_t width{ 0 };
+	size_t height{ 0 };
+	size_t depth{ 0 };
+	bool add_border{ false };
+
+    private:
+	template <typename Iter, typename Predicate>
+	mesher_result work(Iter volume_begin, Iter volume_end, Predicate &&pred) const
+	{
 		static constexpr auto dir = build_directions();
-		int32_t d_w{ static_cast<int32_t>(width) };
-		int32_t d_h{ static_cast<int32_t>(height) };
-		int32_t d_d{ static_cast<int32_t>(depth) };
+		int32_t dw{ static_cast<int32_t>(width) };
+		int32_t dh{ static_cast<int32_t>(height) };
+		int32_t dd{ static_cast<int32_t>(depth) };
+		int32_t bw{ dw + 2 };
+		int32_t bh{ dh + 2 };
+		int32_t bd{ dd + 2 };
 
 		std::vector<int32_t> vert_map{};
 		mesher_result result;
 		auto &vertices = result.vertices;
 		auto &quads = result.quads;
 
-		const auto total_vert_count{ (height + 1) * (width + 1) * (depth + 1) };
+		const auto total_vert_count{ (height + 2) * (width + 2) * (depth + 2) };
 		vert_map.resize(total_vert_count, -1);
 		vertices.reserve(total_vert_count);
 		quads.reserve(height * width * depth * 6);
@@ -65,20 +113,15 @@ class culling_voxel_mesher {
 
 		vertex vert;
 		auto volume = volume_begin;
-		// Iterate from one layer below the region
-		// to the top layer
-		for (vert.z = -1; vert.z < depth; ++vert.z) {
-			// Iterate from one before the region
-			// to the furthest back
-			for (vert.y = -1; vert.y < height; ++vert.y) {
-				// Iterate from one before the region
-				// to the furthest right
-				for (vert.x = -1; vert.x < width; ++vert.x) {
+		for (vert.z = 0; vert.z < bd; ++vert.z) {
+			for (vert.y = 0; vert.y < bh; ++vert.y) {
+				for (vert.x = 0; vert.x < bw; ++vert.x, ++volume) {
+					auto vi = volume - volume_begin;
 					const bool in_bounds = is_in_bounds(vert);
-					auto state = in_bounds && volume_check(pred, volume);
+					auto state = volume_check(pred, volume);
 
-					auto n = find_boundries(vert, volume_begin, pred,
-								volume_check);
+					auto &&[nb, n] = find_boundries(vert, volume_begin, pred,
+									volume_check);
 
 					for (auto d = 0; d < boundry::count; ++d) {
 						if (state == n[d]) {
@@ -86,11 +129,14 @@ class culling_voxel_mesher {
 							continue;
 						}
 
-						add_quad(d, state, vert, quads, insert_vert);
-					}
+						if (!in_bounds && !nb[d]) {
+							continue;
+						}
 
-					if (in_bounds) {
-						++volume;
+						static const vertex remove_border{ 1.0, 1.0, 1.0 };
+
+						add_quad(d, state, vert - remove_border, quads,
+							 insert_vert);
 					}
 				}
 			}
@@ -99,12 +145,6 @@ class culling_voxel_mesher {
 		return result;
 	}
 
-	size_t width{ 0 };
-	size_t height{ 0 };
-	size_t depth{ 0 };
-	bool draw_at_boundry{ false };
-
-    private:
 	template <typename VertInsert>
 	auto add_quad(int32_t direction, bool state, const vertex &vert, std::vector<quad> &quads,
 		      VertInsert vert_insert) const
@@ -153,13 +193,13 @@ class culling_voxel_mesher {
 			vert_insert(q[i], verts[i]);
 		}
 
-		quads.emplace_back(std::move(q));
+		quads.emplace_back(q);
 	}
 
 	auto calc_index(const vertex &vert) const
 	{
 		vector3i i{ vert };
-		return i.z * width * height + i.y * width + i.x;
+		return i.z * (width + 2) * (height + 2) + i.y * (width + 2) + i.x;
 	};
 
 	template <typename Iter, typename Predicate, typename VolumeCheck>
@@ -175,20 +215,26 @@ class culling_voxel_mesher {
 			calc_index(nc[2]),
 		};
 
-		std::array<bool, 3> n{
-			is_in_bounds(nc[0]) && volume_check(pred, volume + ni[0]),
-			is_in_bounds(nc[1]) && volume_check(pred, volume + ni[1]),
-			is_in_bounds(nc[2]) && volume_check(pred, volume + ni[2]),
+		std::array<bool, 3> nb{
+			is_in_bounds(nc[0]),
+			is_in_bounds(nc[1]),
+			is_in_bounds(nc[2]),
 		};
 
-		return n;
+		std::array<bool, 3> n{
+			volume_check(pred, volume + ni[0]),
+			volume_check(pred, volume + ni[1]),
+			volume_check(pred, volume + ni[2]),
+		};
+
+		return std::make_tuple(nb, n);
 	}
 
 	auto is_in_bounds(const vertex &v) const
 	{
-		return (0.0 <= v.x && v.x < static_cast<int32_t>(width)) &&
-		       (0.0 <= v.y && v.y < static_cast<int32_t>(height)) &&
-		       (0.0 <= v.z && v.z < static_cast<int32_t>(depth));
+		return (1.0 <= v.x && v.x <= static_cast<int32_t>(width)) &&
+		       (1.0 <= v.y && v.y <= static_cast<int32_t>(height)) &&
+		       (1.0 <= v.z && v.z <= static_cast<int32_t>(depth));
 	}
 
 	static constexpr auto build_directions()
