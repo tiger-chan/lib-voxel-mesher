@@ -2,6 +2,8 @@
 #define WEAVER_MESHER_MESHER_RESULT_HPP
 
 #include <vector>
+#include "../config/config.hpp"
+#include "../core/attributes.hpp"
 #include "../core/fwd.hpp"
 #include "../core/vector2.hpp"
 #include "../core/vector3.hpp"
@@ -10,7 +12,7 @@
 
 namespace tc
 {
-	struct mesher_result
+	struct WEAVER_API mesher_result
 	{
 		std::vector<vertex> vertices;
 		std::vector<quad> quads;

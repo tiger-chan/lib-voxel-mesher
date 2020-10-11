@@ -1,18 +1,20 @@
 #ifndef WEAVER_CORE_QUATERNION_HPP
 #define WEAVER_CORE_QUATERNION_HPP
 
+#include "../config/config.hpp"
+#include "attributes.hpp"
 #include "fwd.hpp"
 #include <utility>
 
 namespace tc
 {
-	struct quaternion
+	struct WEAVER_API quaternion
 	{
 		using data_t = double;
 
 		const data_t& operator[](size_t i) const
 		{
-			VOXEL_MESHER_ASSERT(i > 3);
+			WEAVER_ASSERT(i > 3);
 			switch (i)
 			{
 				case 0: return x;

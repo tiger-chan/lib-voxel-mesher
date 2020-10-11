@@ -1,14 +1,15 @@
 #ifndef WEAVER_MESHER_CULLING_VOXEL_MESHER_HPP
 #define WEAVER_MESHER_CULLING_VOXEL_MESHER_HPP
 
-#include "../core/vertex.hpp"
+#include "../config/config.hpp"
+#include "../core/attributes.hpp"
 #include "fwd.hpp"
 #include "mesher_result.hpp"
 #include <array>
 
 namespace tc
 {
-class culling_voxel_mesher {
+class WEAVER_API culling_voxel_mesher {
 	enum boundry { r = 0, f = 1, u = 2, count = 3 };
 
     public:

@@ -1,6 +1,8 @@
 #ifndef WEAVER_CORE_VECTOR2_HPP
 #define WEAVER_CORE_VECTOR2_HPP
 
+#include "../config/config.hpp"
+#include "attributes.hpp"
 #include "fwd.hpp"
 #include <utility>
 #include <cstdint>
@@ -8,7 +10,7 @@
 
 namespace tc
 {
-template <typename data_t> struct base_vector2 {
+template <typename data_t> struct WEAVER_API base_vector2 {
 	constexpr base_vector2() = default;
 
 	constexpr base_vector2(data_t x, data_t y) : x{ x }, y{ y }
@@ -29,7 +31,7 @@ template <typename data_t> struct base_vector2 {
 
 	constexpr const data_t &operator[](size_t i) const
 	{
-		VOXEL_MESHER_ASSERT(i > 1);
+		WEAVER_ASSERT(i > 1);
 		switch (i) {
 		case 0:
 			return x;
@@ -137,7 +139,7 @@ template <typename data_t> struct base_vector2 {
 	base_vector2 &normalize_quick()
 	{
 		auto mag = magnitude();
-		VOXEL_MESHER_ASSERT(mag > 0);
+		WEAVER_ASSERT(mag > 0);
 		*this /= mag;
 		return *this;
 	}

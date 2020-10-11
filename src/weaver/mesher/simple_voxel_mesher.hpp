@@ -1,7 +1,8 @@
 #ifndef WEAVER_MESHER_SIMPLE_VOXEL_MESHER_HPP
 #define WEAVER_MESHER_SIMPLE_VOXEL_MESHER_HPP
 
-
+#include "../config/config.hpp"
+#include "../core/attributes.hpp"
 #include "../core/fwd.hpp"
 #include "../core/vertex.hpp"
 #include "mesher_result.hpp"
@@ -9,7 +10,7 @@
 
 namespace tc
 {
-class simple_voxel_mesher {
+class WEAVER_API simple_voxel_mesher {
     public:
 	template <typename Iter>
 	inline mesher_result eval(Iter volume_begin, Iter volume_end) const
