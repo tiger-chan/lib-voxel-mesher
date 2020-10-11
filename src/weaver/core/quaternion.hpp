@@ -1,4 +1,5 @@
-#pragma once
+#ifndef WEAVER_CORE_QUATERNION_HPP
+#define WEAVER_CORE_QUATERNION_HPP
 
 #include "fwd.hpp"
 #include <utility>
@@ -32,3 +33,5 @@ namespace tc
 		data_t w = 1.0;
 	};
 }
+
+#endif // WEAVER_CORE_QUATERNION_HPP

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef WEAVER_CORE_FWD_HPP
+#define WEAVER_CORE_FWD_HPP
 
 #ifndef VOXEL_MESHER_ASSERT
 #include <cassert>
@@ -12,5 +13,6 @@ template <typename data_t> struct base_vector2;
 template <typename data_t> struct base_vector3;
 
 struct quad;
-struct mesher_result;
 } // namespace tc
+
+#endif // WEAVER_CORE_FWD_HPP

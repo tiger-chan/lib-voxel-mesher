@@ -1,4 +1,5 @@
-#pragma once
+#ifndef WEAVER_CORE_VECTOR2_HPP
+#define WEAVER_CORE_VECTOR2_HPP
 
 #include "fwd.hpp"
 #include <utility>
@@ -156,3 +157,5 @@ using vector2d = base_vector2<double>;
 using vector2f = base_vector2<float>;
 using vector2i = base_vector2<int32_t>;
 } // namespace tc
+
+#endif // WEAVER_CORE_VECTOR2_HPP

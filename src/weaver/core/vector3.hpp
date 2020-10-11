@@ -1,4 +1,5 @@
-#pragma once
+#ifndef WEAVER_CORE_VECTOR3_HPP
+#define WEAVER_CORE_VECTOR3_HPP
 
 #include "fwd.hpp"
 #include <utility>
@@ -166,3 +167,5 @@ template <typename data_t> struct base_vector3 {
 using vector3d = base_vector3<double>;
 using vector3i = base_vector3<int32_t>;
 } // namespace tc
+
+#endif // WEAVER_CORE_VECTOR3_HPP

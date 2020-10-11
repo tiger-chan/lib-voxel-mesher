@@ -1,7 +1,8 @@
-#pragma once
+#ifndef WEAVER_MESHER_CULLING_VOXEL_MESHER_HPP
+#define WEAVER_MESHER_CULLING_VOXEL_MESHER_HPP
 
+#include "../core/vertex.hpp"
 #include "fwd.hpp"
-#include "vertex.hpp"
 #include "mesher_result.hpp"
 #include <array>
 
@@ -250,3 +251,5 @@ class culling_voxel_mesher {
 	};
 };
 } // namespace tc
+
+#endif // WEAVER_MESHER_CULLING_VOXEL_MESHER_HPP

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef WEAVER_CORE_QUAD_HPP
+#define WEAVER_CORE_QUAD_HPP
 
 #include <cstdint>
 #include <array>
@@ -13,3 +14,5 @@ namespace tc
 		std::array<vector2d, 4> uv;
 	};
 }
+
+#endif // WEAVER_CORE_QUAD_HPP

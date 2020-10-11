@@ -1,7 +1,9 @@
-#pragma once
+#ifndef WEAVER_MESHER_SIMPLE_VOXEL_MESHER_HPP
+#define WEAVER_MESHER_SIMPLE_VOXEL_MESHER_HPP
 
-#include "fwd.hpp"
-#include "vertex.hpp"
+
+#include "../core/fwd.hpp"
+#include "../core/vertex.hpp"
 #include "mesher_result.hpp"
 #include <array>
 
@@ -125,3 +127,5 @@ class simple_voxel_mesher {
 	bool draw_at_boundry{ false };
 };
 } // namespace tc
+
+#endif // WEAVER_MESHER_SIMPLE_VOXEL_MESHER_HPP
