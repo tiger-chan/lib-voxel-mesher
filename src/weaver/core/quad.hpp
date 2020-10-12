@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <array>
+#include "../config/config.hpp"
 #include "attributes.hpp"
 #include "vector2.hpp"
 #include "vector3.hpp"
@@ -13,6 +14,7 @@ namespace tc
 	{
 		vector3d normal{};
 		std::array<vector2d, 4> uv;
+		weaver::voxel_id_t type_id{ weaver::unset_voxel_id };
 	};
 }
 

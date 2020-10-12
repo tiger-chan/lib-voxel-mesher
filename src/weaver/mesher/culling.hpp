@@ -1,26 +1,25 @@
-#ifndef WEAVER_MESHER_CULLING_VOXEL_MESHER_HPP
-#define WEAVER_MESHER_CULLING_VOXEL_MESHER_HPP
+#ifndef WEAVER_MESHER_CULLING_HPP
+#define WEAVER_MESHER_CULLING_HPP
 
 #include "../config/config.hpp"
 #include "../core/attributes.hpp"
 #include "fwd.hpp"
+#include "voxel_reader.hpp"
 #include "mesher_result.hpp"
 #include <array>
 
 namespace tc
 {
-class WEAVER_API culling_voxel_mesher {
+template<typename Type>
+class WEAVER_API culling {
+	template<typename T>
+	using reader_t = weaver::voxel_reader<T>;
 	enum boundry { r = 0, f = 1, u = 2, count = 3 };
 
     public:
-	template <typename Iter> inline mesher_result eval(Iter volume_begin, Iter volume_end) const
-	{
-		return eval(std::forward<Iter>(volume_begin), std::forward<Iter>(volume_end),
-			    [](const auto &i) { return !!(*i); });
-	}
 
-	template <typename Iter, typename Predicate>
-	mesher_result eval(Iter volume_begin, Iter volume_end, Predicate &&pred) const
+	template <typename Iter>
+	mesher_result eval(Iter volume_begin, Iter volume_end) const
 	{
 		if (add_border) {
 			int32_t dw{ static_cast<int32_t>(width) };
@@ -30,8 +29,8 @@ class WEAVER_API culling_voxel_mesher {
 			int32_t bh{ dh + 2 };
 			int32_t bd{ dd + 2 };
 
-			std::vector<Iter> volume;
-			volume.resize(bw * bh * bd, volume_end);
+			std::vector<Type*> volume;
+			volume.resize(bw * bh * bd, nullptr);
 			for (auto z = 0; z < dd; ++z) {
 				auto zb = (z + 1) * bh * bw;
 				auto zi = z * dh * dw;
@@ -41,20 +40,14 @@ class WEAVER_API culling_voxel_mesher {
 					for (auto x = 0; x < dw; ++x) {
 						auto b = (x + 1) + yb;
 						auto i = x + yi;
-						volume[b] = volume_begin + i;
+						volume[b] = (volume_begin + i).operator->();
 					}
 				}
 			}
 
-			return work(std::begin(volume), std::end(volume),
-				    [&pred, e = std::end(volume)](auto it) {
-					    if (it == e) {
-						    return false;
-					    }
-					    return pred(*it);
-				    });
+			return work(std::begin(volume), std::end(volume), reader_t<Type*>{});
 		} else {
-			return work(volume_begin, volume_end, std::forward<Predicate>(pred));
+			return work(volume_begin, volume_end, reader_t<Type>{});
 		}
 	}
 
@@ -64,8 +57,8 @@ class WEAVER_API culling_voxel_mesher {
 	bool add_border{ false };
 
     private:
-	template <typename Iter, typename Predicate>
-	mesher_result work(Iter volume_begin, Iter volume_end, Predicate &&pred) const
+	template <typename Iter, typename T>
+	mesher_result work(Iter volume_begin, Iter volume_end, reader_t<T> reader = {}) const
 	{
 		static constexpr auto dir = build_directions();
 		int32_t dw{ static_cast<int32_t>(width) };
@@ -85,12 +78,12 @@ class WEAVER_API culling_voxel_mesher {
 		vertices.reserve(total_vert_count);
 		quads.reserve(height * width * depth * 6);
 
-		auto volume_check = [pred, b = volume_begin, e = volume_end](auto pred, auto c) {
-			if (c < b || c >= e) {
+		auto volume_check = [reader = reader, e = volume_end](auto c) {
+			if (c >= e) {
 				return false;
 			}
 
-			return pred(c);
+			return reader.visible(*c);
 		};
 
 		auto insert_vert = [&vert_map, &vertices](auto &key, const auto &vert) {
@@ -120,10 +113,9 @@ class WEAVER_API culling_voxel_mesher {
 				for (vert.x = 0; vert.x < bw; ++vert.x, ++volume) {
 					auto vi = volume - volume_begin;
 					const bool in_bounds = is_in_bounds(vert);
-					auto state = volume_check(pred, volume);
+					auto state = volume_check(volume);
 
-					auto &&[nb, n] = find_boundries(vert, volume_begin, pred,
-									volume_check);
+					auto &&[nb, n, ni] = find_boundries(vert, volume_begin, volume_check);
 
 					for (auto d = 0; d < boundry::count; ++d) {
 						if (state == n[d]) {
@@ -135,9 +127,11 @@ class WEAVER_API culling_voxel_mesher {
 							continue;
 						}
 
+						auto vox = state == true ? volume : volume_begin + ni[d];
+
 						static const vertex remove_border{ 1.0, 1.0, 1.0 };
 
-						add_quad(d, state, vert - remove_border, quads,
+						add_quad(d, state, vert - remove_border, quads, vox, reader,
 							 insert_vert);
 					}
 				}
@@ -147,8 +141,8 @@ class WEAVER_API culling_voxel_mesher {
 		return result;
 	}
 
-	template <typename VertInsert>
-	auto add_quad(int32_t direction, bool state, const vertex &vert, std::vector<quad> &quads,
+	template <typename Iter, typename T, typename VertInsert>
+	auto add_quad(int32_t direction, bool state, const vertex &vert, std::vector<quad> &quads, Iter current_vox, reader_t<T>& reader,
 		      VertInsert vert_insert) const
 	{
 		constexpr auto dir = build_directions();
@@ -189,6 +183,7 @@ class WEAVER_API culling_voxel_mesher {
 		quad q{};
 		q.normal = normal;
 		q.uv = uv;
+		q.type_id = reader(*current_vox);
 
 		for (auto i = 0; i < 4; ++i) {
 			q[i] = calc_vert_index(verts[i]);
@@ -204,8 +199,8 @@ class WEAVER_API culling_voxel_mesher {
 		return i.z * (width + 2) * (height + 2) + i.y * (width + 2) + i.x;
 	};
 
-	template <typename Iter, typename Predicate, typename VolumeCheck>
-	auto find_boundries(const vertex &vert, Iter volume, Predicate &&pred,
+	template <typename Iter, typename VolumeCheck>
+	auto find_boundries(const vertex &vert, Iter volume,
 			    VolumeCheck &&volume_check) const
 	{
 		std::array<vector3d, 3> nc{ vert + vertex{ 1.0 }, vert + vertex{ 0.0, 1.0 },
@@ -224,12 +219,12 @@ class WEAVER_API culling_voxel_mesher {
 		};
 
 		std::array<bool, 3> n{
-			volume_check(pred, volume + ni[0]),
-			volume_check(pred, volume + ni[1]),
-			volume_check(pred, volume + ni[2]),
+			volume_check(volume + ni[0]),
+			volume_check(volume + ni[1]),
+			volume_check(volume + ni[2]),
 		};
 
-		return std::make_tuple(nb, n);
+		return std::make_tuple(nb, n, ni);
 	}
 
 	auto is_in_bounds(const vertex &v) const
@@ -253,4 +248,4 @@ class WEAVER_API culling_voxel_mesher {
 };
 } // namespace tc
 
-#endif // WEAVER_MESHER_CULLING_VOXEL_MESHER_HPP
+#endif // WEAVER_MESHER_CULLING_HPP
