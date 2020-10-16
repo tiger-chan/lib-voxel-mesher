@@ -6,6 +6,7 @@
 #include "fwd.hpp"
 #include "voxel_reader.hpp"
 #include "mesher_result.hpp"
+#include "cube_def.hpp"
 #include <array>
 
 namespace tc
@@ -147,50 +148,26 @@ class WEAVER_API culling {
 	{
 		constexpr auto dir = build_directions();
 
-		auto calc_vert_index = [w = width + 1, h = height + 1](const auto &vert) {
-			vector3i i{ vert };
-			return i.z * w * h + i.y * w + i.x;
-		};
-
-		auto tmp = vert;
-		auto u = dir[direction][0];
-		auto v = dir[direction][1];
-		++tmp[direction];
-
-		std::array<vertex, 4> verts{};
-		verts[0] = tmp; // vert
-		verts[1] = verts[0] + u; // vert + u
-		verts[2] = verts[1] + v; // vert + u + v
-		verts[3] = verts[0] + v; // vert + v
-
+		vertex delta{0.0,0.0,0.0};
 		if (!state) {
-			std::iter_swap(std::begin(verts), std::begin(verts) + 3);
-			std::iter_swap(std::begin(verts) + 1, std::begin(verts) + 2);
+			switch(direction) {
+				case boundry::r: delta = { 1.0, 0.0, 0.0 }; break;
+				case boundry::f: delta = { 0.0, 1.0, 0.0 }; break;
+				case boundry::u: delta = { 0.0, 0.0, 1.0 }; break;
+			}
 		}
 
-		std::array<vector2d, 4> uv{
-			vector2d{ 0.0, 0.0 },
-			vector2d{ 1.0, 0.0 },
-			vector2d{ 1.0, 1.0 },
-			vector2d{ 0.0, 1.0 },
-		};
-
-		auto cb = verts[2] - verts[1];
-		auto ab = verts[0] - verts[1];
-		auto normal = cb.cross(ab);
-		cb.normalize_quick();
-
-		quad q{};
-		q.normal = normal;
-		q.uv = uv;
-		q.type_id = reader(*current_vox);
-
-		for (auto i = 0; i < 4; ++i) {
-			q[i] = calc_vert_index(verts[i]);
-			vert_insert(q[i], verts[i]);
+		auto faces = cube_faces;
+		auto index = direction + (state ? 0 : 3);
+		auto face = faces[index];
+		face.normal.normalize_quick();
+		for (auto& v: face) {
+			v += vert + delta;
 		}
 
-		quads.emplace_back(q);
+		face.type_id = reader(*current_vox);
+
+		quads.emplace_back(face);
 	}
 
 	auto calc_index(const vertex &vert) const

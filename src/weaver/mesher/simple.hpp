@@ -6,6 +6,7 @@
 #include "fwd.hpp"
 #include "voxel_reader.hpp"
 #include "mesher_result.hpp"
+#include "cube_def.hpp"
 #include <array>
 
 namespace tc
@@ -115,59 +116,9 @@ class WEAVER_API simple {
 						continue;
 					}
 
-					auto type_id = reader(*volume);
+					static const vertex remove_border{ 1.0, 1.0, 1.0 };
 
-					// since these are voxels each side is the same as the opposite side
-					// so we iterate only three sides and duplicate the quads on each
-					for (auto d = 0; d < 3; ++d) {
-						std::array<vertex, 4> tmp_quad{};
-						vertex tmp{ vert };
-						vertex u{};
-						vertex v{};
-						u[(d + 1) % 3] = 1.0;
-						v[(d + 2) % 3] = 1.0;
-
-						for (auto side = 0; side < 2; ++side) {
-							tmp[d] = vert[d] + side;
-							tmp_quad[0] = tmp;
-							tmp_quad[1] = tmp_quad[0] + u;
-							tmp_quad[2] = tmp_quad[0] + u + v;
-							tmp_quad[3] = tmp_quad[0] + v;
-
-							std::array<vector2d, 4> uv{
-								vector2d{ 0.0, 0.0 },
-								vector2d{ 1.0, 0.0 },
-								vector2d{ 1.0, 1.0 },
-								vector2d{ 0.0, 1.0 },
-							};
-
-							if (side == 0) {
-								std::iter_swap(
-									std::begin(tmp_quad),
-									std::begin(tmp_quad) + 3);
-								std::iter_swap(
-									std::begin(tmp_quad) + 1,
-									std::begin(tmp_quad) + 2);
-							}
-
-							auto cb = tmp_quad[2] - tmp_quad[1];
-							auto ab = tmp_quad[0] - tmp_quad[1];
-							auto normal = cb.cross(ab);
-							cb.normalize_quick();
-
-							quad q{};
-							q.normal = normal;
-							q.uv = uv;
-							q.type_id = type_id;
-
-							for (int i = 0; i < 4; ++i) {
-								q[i] = calc_vert_index(tmp_quad[i]);
-								insert_vert(q[i], tmp_quad[i]);
-							}
-
-							quads.emplace_back(std::move(q));
-						}
-					}
+					add_quads(vert - remove_border, quads, volume, reader);
 				}
 			}
 		}
@@ -187,6 +138,29 @@ class WEAVER_API simple {
 		return (1.0 <= v.x && v.x <= static_cast<int32_t>(width)) &&
 		       (1.0 <= v.y && v.y <= static_cast<int32_t>(height)) &&
 		       (1.0 <= v.z && v.z <= static_cast<int32_t>(depth));
+	}
+
+	template <typename Iter, typename T>
+	auto add_quads(const vertex &vert, std::vector<quad> &quads, Iter current_vox, reader_t<T>& reader) const
+	{
+		auto faces = cube_faces;
+
+		for (auto d = 0; d < 3; ++d) {
+			for (auto side = 0; side < 2; ++side) {
+				auto state = side == 1;
+				
+				auto index = d + (state ? 0 : 3);
+				auto face = faces[index];
+				face.normal.normalize_quick();
+				for (auto& v: face) {
+					v += vert;
+				}
+
+				face.type_id = reader(*current_vox);
+
+				quads.emplace_back(face);
+			}
+		}
 	}
 };
 } // namespace tc
