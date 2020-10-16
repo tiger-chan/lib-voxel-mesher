@@ -20,7 +20,7 @@ class WEAVER_API simple {
     public:
 
 	template <typename Iter>
-	mesher_result eval(Iter volume_begin, Iter volume_end) const
+	mesher_result eval(Iter volume_begin, Iter volume_end, reader_t<Type> reader = {}) const
 	{
 		if (add_border) {
 			int32_t dw{ static_cast<int32_t>(width) };
@@ -46,9 +46,9 @@ class WEAVER_API simple {
 				}
 			}
 
-			return work(std::begin(volume), std::end(volume), reader_t<Type*>{});
+			return work(std::begin(volume), std::end(volume), reader_t<Type*>{reader});
 		} else {
-			return work(volume_begin, volume_end, reader_t<Type>{});
+			return work(volume_begin, volume_end, reader);
 		}
 	}
 

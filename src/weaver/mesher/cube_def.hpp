@@ -25,10 +25,10 @@ struct WEAVER_API cube_def {
 
 		std::array<quad, 6> quads{
 			quad{ b, c, g, f }, // Right face
-			quad{ a, b, f, e }, // Front face
+			quad{ c, d, h, g }, // Back face
 			quad{ e, f, g, h }, // Top face
 			quad{ d, a, e, h }, // Left face
-			quad{ c, d, h, g }, // Back face
+			quad{ a, b, f, e }, // Front face
 			quad{ d, c, b, a }, // Bottom face
 		};
 
