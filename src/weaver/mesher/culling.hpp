@@ -72,12 +72,8 @@ class WEAVER_API culling {
 
 		std::vector<int32_t> vert_map{};
 		mesher_result result;
-		auto &vertices = result.vertices;
 		auto &quads = result.quads;
 
-		const auto total_vert_count{ (height + 2) * (width + 2) * (depth + 2) };
-		vert_map.resize(total_vert_count, -1);
-		vertices.reserve(total_vert_count);
 		quads.reserve(height * width * depth * 6);
 
 		auto volume_check = [reader = reader, e = volume_end](auto c) {
@@ -87,26 +83,6 @@ class WEAVER_API culling {
 
 			return reader.visible(*c);
 		};
-
-		auto insert_vert = [&vert_map, &vertices](auto &key, const auto &vert) {
-			auto &map_key = vert_map[key];
-			if (map_key >= 0) {
-				key = map_key;
-				return;
-			}
-
-			map_key = key = vertices.size();
-			vertices.emplace_back(vert);
-		};
-
-		// move the begining this check to to a layer below the start of the
-		// section so we can draw the bottoms of the voxels
-
-		// anytime there is a change from current voxel's state to another state
-		// on a neighbor that means we need to render something.
-		// e.g. if the voxel isn't present in <0, 0, -1>, but <0, 0, 0> is
-		// when we check <0, 0, -1> for it's neighbors we see that <0, 0, -1> is unset
-		// and <0, 0, 0> is set so there needs to be quad placed on the boundry between
 
 		vertex vert;
 		auto volume = volume_begin;
@@ -133,8 +109,7 @@ class WEAVER_API culling {
 
 						static const vertex remove_border{ 1.0, 1.0, 1.0 };
 
-						add_quad(d, state, vert - remove_border, quads, vox, reader,
-							 insert_vert);
+						add_quad(d, state, vert - remove_border, quads, vox, readers);
 					}
 				}
 			}
@@ -144,8 +119,7 @@ class WEAVER_API culling {
 	}
 
 	template <typename Iter, typename T, typename VertInsert>
-	auto add_quad(int32_t direction, bool state, const vertex &vert, std::vector<quad> &quads, Iter current_vox, reader_t<T>& reader,
-		      VertInsert vert_insert) const
+	auto add_quad(int32_t direction, bool state, const vertex &vert, std::vector<quad> &quads, Iter current_vox, reader_t<T>& reader) const
 	{
 		constexpr auto dir = build_directions();
 
@@ -171,8 +145,8 @@ class WEAVER_API culling {
 		
 		for (auto&& def: voxel_defintion)
 		{
-			vector3d min{def.min};
-			vector3d max{def.max};
+			vector3d& min{def.min};
+			vector3d& max{def.max};
 			auto face = base_face;
 
 			face[0] = clamp(base_face[0], min, max);

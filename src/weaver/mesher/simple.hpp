@@ -68,14 +68,9 @@ class WEAVER_API simple {
 		int32_t bh{ dh + 2 };
 		int32_t bd{ dd + 2 };
 
-		std::vector<int32_t> vert_map{};
 		mesher_result result;
-		auto &vertices = result.vertices;
 		auto &quads = result.quads;
 
-		const auto total_vert_count{ (height + 2) * (width + 2) * (depth + 2) };
-		vert_map.resize(total_vert_count, -1);
-		vertices.reserve(total_vert_count);
 		quads.reserve(height * width * depth * 6);
 
 		auto volume_check = [reader = reader, e = volume_end](auto c) {
@@ -84,22 +79,6 @@ class WEAVER_API simple {
 			}
 
 			return reader.visible(*c);
-		};
-
-		auto insert_vert = [&vert_map, &vertices](auto &key, const auto &vert) {
-			auto &map_key = vert_map[key];
-			if (map_key >= 0) {
-				key = map_key;
-				return;
-			}
-
-			map_key = key = vertices.size();
-			vertices.emplace_back(vert);
-		};
-
-		auto calc_vert_index = [w = width + 1, h = height + 1](const auto &vert) {
-			vector3i i{ vert };
-			return i.z * w * h + i.y * w + i.x;
 		};
 
 		vertex vert;
@@ -127,11 +106,6 @@ class WEAVER_API simple {
 	}
 
 	private:
-	auto calc_index(const vertex &vert) const
-	{
-		vector3i i{ vert };
-		return i.z * (width + 2) * (height + 2) + i.y * (width + 2) + i.x;
-	};
 
 	auto is_in_bounds(const vertex &v) const
 	{
