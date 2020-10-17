@@ -150,15 +150,30 @@ class WEAVER_API simple {
 				auto state = side == 1;
 				
 				auto index = d + (state ? 0 : 3);
-				auto face = faces[index];
-				face.normal.normalize_quick();
-				for (auto& v: face) {
-					v += vert;
+
+				auto voxel_defintion = reader(*current_vox, static_cast<voxel_face>(index));
+				auto type_id = reader(*current_vox);
+				
+				auto base_face = faces[index];
+				base_face.normal.normalize_quick();
+
+				for (auto&& def: voxel_defintion)
+				{
+					vector3d min{def.min};
+					vector3d max{def.max};
+					auto face = base_face;
+
+					face[0] = clamp(base_face[0], min, max);
+					face[1] = clamp(base_face[1], min, max);
+					face[2] = clamp(base_face[2], min, max);
+					face[3] = clamp(base_face[3], min, max);
+					
+
+					for (auto& v: face) {
+						v += vert + def.translate;
+					}
+					quads.emplace_back(face);
 				}
-
-				face.type_id = reader(*current_vox);
-
-				quads.emplace_back(face);
 			}
 		}
 	}

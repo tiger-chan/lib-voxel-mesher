@@ -3,6 +3,7 @@
 
 #include "../config/config.hpp"
 #include "attributes.hpp"
+#include "algorithm.hpp"
 #include "fwd.hpp"
 #include <utility>
 #include <cstdint>
@@ -50,6 +51,79 @@ template <typename data_t> struct WEAVER_API base_vector3 {
 		return const_cast<data_t &>(std::as_const(*this)[i]);
 	}
 
+	constexpr base_vector3 operator-() const
+	{
+		return base_vector3{ -x, -y, -z };
+	}
+
+	template<typename Numeric, std::enable_if_t<std::is_arithmetic_v<Numeric>, int32_t> = 0>
+	constexpr base_vector3 &operator+=(const Numeric &scalar)
+	{
+		x += scalar;
+		y += scalar;
+		z += scalar;
+
+		return *this;
+	}
+
+	template<typename Numeric, std::enable_if_t<std::is_arithmetic_v<Numeric>, int32_t> = 0>
+	constexpr base_vector3 &operator+(const Numeric &scalar)
+	{
+		auto orig = *this;
+		return orig *= scalar;
+	}
+
+	template<typename Numeric, std::enable_if_t<std::is_arithmetic_v<Numeric>, int32_t> = 0>
+	constexpr base_vector3 &operator-=(const Numeric &scalar)
+	{
+		x -= scalar;
+		y -= scalar;
+		z -= scalar;
+
+		return *this;
+	}
+
+	template<typename Numeric, std::enable_if_t<std::is_arithmetic_v<Numeric>, int32_t> = 0>
+	constexpr base_vector3 &operator-(const Numeric &scalar)
+	{
+		auto orig = *this;
+		return orig -= scalar;
+	}
+
+	template<typename Numeric, std::enable_if_t<std::is_arithmetic_v<Numeric>, int32_t> = 0>
+	constexpr base_vector3 &operator/=(const Numeric &scalar)
+	{
+		x /= scalar;
+		y /= scalar;
+		z /= scalar;
+
+		return *this;
+	}
+
+	template<typename Numeric, std::enable_if_t<std::is_arithmetic_v<Numeric>, int32_t> = 0>
+	constexpr base_vector3 &operator/(const Numeric &scalar)
+	{
+		auto orig = *this;
+		return orig /= scalar;
+	}
+
+	template<typename Numeric, std::enable_if_t<std::is_arithmetic_v<Numeric>, int32_t> = 0>
+	constexpr base_vector3 &operator*=(const Numeric &scalar)
+	{
+		x *= scalar;
+		y *= scalar;
+		z *= scalar;
+
+		return *this;
+	}
+
+	template<typename Numeric, std::enable_if_t<std::is_arithmetic_v<Numeric>, int32_t> = 0>
+	constexpr base_vector3 &operator*(const Numeric &scalar)
+	{
+		auto orig = *this;
+		return orig *= scalar;
+	}
+
 	constexpr base_vector3 &operator+=(const base_vector3 &other)
 	{
 		x += other.x;
@@ -80,34 +154,34 @@ template <typename data_t> struct WEAVER_API base_vector3 {
 		return orig -= other;
 	}
 
-	constexpr base_vector3 &operator*=(data_t scalar)
+	constexpr base_vector3 &operator*=(const base_vector3 &other)
 	{
-		x *= scalar;
-		y *= scalar;
-		z *= scalar;
+		x *= other.x;
+		y *= other.y;
+		z *= other.z;
+
 		return *this;
 	}
 
-	constexpr base_vector3 operator*(data_t scalar) const
+	constexpr base_vector3 operator*(const base_vector3 &other) const
 	{
 		auto orig = *this;
-		orig *= scalar;
-		return orig;
+		return orig *= other;
 	}
 
-	constexpr base_vector3 &operator/=(data_t scalar)
+	constexpr base_vector3 &operator/=(const base_vector3 &other)
 	{
-		x /= scalar;
-		y /= scalar;
-		z /= scalar;
+		x /= other.x;
+		y /= other.y;
+		z /= other.z;
+
 		return *this;
 	}
 
-	constexpr base_vector3 operator/(data_t scalar) const
+	constexpr base_vector3 operator/(const base_vector3 &other) const
 	{
-		auto orig = this;
-		orig /= scalar;
-		return orig;
+		auto orig = *this;
+		return orig /= other;
 	}
 
 	constexpr data_t dot(const base_vector3 &other) const
@@ -168,6 +242,43 @@ template <typename data_t> struct WEAVER_API base_vector3 {
 
 using vector3d = base_vector3<double>;
 using vector3i = base_vector3<int32_t>;
+
+template<typename Data, typename Numeric, std::enable_if_t<std::is_arithmetic_v<Numeric>, int32_t> = 0>
+static base_vector3<Data> operator-(const Numeric& n, const base_vector3<Data>& v) {
+	auto o = -v;
+	return o += n;
+}
+
+template<typename Data, typename Numeric, std::enable_if_t<std::is_arithmetic_v<Numeric>, int32_t> = 0>
+static base_vector3<Data> operator+(const Numeric& n, const base_vector3<Data>& v) {
+	auto o = v;
+	return o += n;
+}
+
+template<typename Data, typename Numeric, std::enable_if_t<std::is_arithmetic_v<Numeric>, int32_t> = 0>
+static base_vector3<Data> operator*(const Numeric& n, const base_vector3<Data>& v) {
+	auto o = v;
+	return o *= n;
+}
+
+template<typename Data, typename Numeric, std::enable_if_t<std::is_arithmetic_v<Numeric>, int32_t> = 0>
+static base_vector3<Data> operator/(const Numeric& n, const base_vector3<Data>& v) {
+	auto o = v;
+	o.x = n / o.x;
+	o.y = n / o.y;
+	o.z = n / o.z;
+	return o = n;
+}
+
+template<typename Data>
+static base_vector3<Data> clamp(const base_vector3<Data>& v, const base_vector3<Data>& min, const base_vector3<Data>& max)
+{
+	base_vector3<Data> r{};
+	r.x = weaver::clamp(v.x, min.x, max.x);
+	r.y = weaver::clamp(v.y, min.y, max.y);
+	r.z = weaver::clamp(v.z, min.z, max.z);
+	return r;
+}
 } // namespace tc
 
 #endif // WEAVER_CORE_VECTOR3_HPP

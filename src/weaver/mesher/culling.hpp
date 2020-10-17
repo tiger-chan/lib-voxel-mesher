@@ -8,6 +8,7 @@
 #include "mesher_result.hpp"
 #include "cube_def.hpp"
 #include <array>
+#include "../core/algorithm.hpp"
 
 namespace tc
 {
@@ -150,6 +151,8 @@ class WEAVER_API culling {
 
 		vertex delta{0.0,0.0,0.0};
 		if (!state) {
+			// need to add a delta because when the state is false
+			// that means we are drawing from a neighbor not this voxel
 			switch(direction) {
 				case boundry::r: delta = { 1.0, 0.0, 0.0 }; break;
 				case boundry::f: delta = { 0.0, 1.0, 0.0 }; break;
@@ -159,15 +162,31 @@ class WEAVER_API culling {
 
 		auto faces = cube_faces;
 		auto index = direction + (state ? 0 : 3);
-		auto face = faces[index];
-		face.normal.normalize_quick();
-		for (auto& v: face) {
-			v += vert + delta;
+
+		auto voxel_defintion = reader(*current_vox, static_cast<voxel_face>(index));
+		auto type_id = reader(*current_vox);
+		
+		auto base_face = faces[index];
+		base_face.normal.normalize_quick();
+		
+		for (auto&& def: voxel_defintion)
+		{
+			vector3d min{def.min};
+			vector3d max{def.max};
+			auto face = base_face;
+
+			face[0] = clamp(base_face[0], min, max);
+			face[1] = clamp(base_face[1], min, max);
+			face[2] = clamp(base_face[2], min, max);
+			face[3] = clamp(base_face[3], min, max);
+			
+
+			for (auto& v: face) {
+				v += vert + delta + def.translate;
+			}	
+			quads.emplace_back(face);
 		}
 
-		face.type_id = reader(*current_vox);
-
-		quads.emplace_back(face);
 	}
 
 	auto calc_index(const vertex &vert) const
