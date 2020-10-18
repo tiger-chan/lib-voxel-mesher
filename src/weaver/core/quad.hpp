@@ -39,6 +39,20 @@ namespace tc
 			};
 		}
 
+		template<typename Fn>
+		void for_each(Fn fn) {
+			for (int32_t i = 0; i < 4; ++i) {
+				fn(i, this->operator[](i), uv[i]);
+			};
+		}
+
+		template<typename Fn>
+		void for_each(Fn fn) const {
+			for (int32_t i = 0; i < 4; ++i) {
+				fn(i, (*this)[i], uv[i]);
+			};
+		}
+
 		vector3d normal{};
 		std::array<vector2d, 4> uv;
 		weaver::voxel_id_t type_id{ weaver::unset_voxel_id };

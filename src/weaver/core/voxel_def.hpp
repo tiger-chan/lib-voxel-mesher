@@ -12,6 +12,7 @@ struct WEAVER_API voxel_def
 	vector3d min{ 0.0, 0.0, 0.0 };
 	vector3d max{ 1.0, 1.0, 1.0 };
 	vector3d translate{ 0.0, 0.0, 0.0 };
+	bool cull_neighbor{ true };
 };
 } // namespace tc
 

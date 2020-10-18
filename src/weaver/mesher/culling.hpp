@@ -9,6 +9,7 @@
 #include "cube_def.hpp"
 #include <array>
 #include "../core/algorithm.hpp"
+#include "../core/voxel_face.hpp"
 
 namespace tc
 {
@@ -62,7 +63,6 @@ class WEAVER_API culling {
 	template <typename Iter, typename T>
 	mesher_result work(Iter volume_begin, Iter volume_end, reader_t<T> reader = {}) const
 	{
-		static constexpr auto dir = build_directions();
 		int32_t dw{ static_cast<int32_t>(width) };
 		int32_t dh{ static_cast<int32_t>(height) };
 		int32_t dd{ static_cast<int32_t>(depth) };
@@ -70,7 +70,6 @@ class WEAVER_API culling {
 		int32_t bh{ dh + 2 };
 		int32_t bd{ dd + 2 };
 
-		std::vector<int32_t> vert_map{};
 		mesher_result result;
 		auto &quads = result.quads;
 
@@ -84,32 +83,45 @@ class WEAVER_API culling {
 			return reader.visible(*c);
 		};
 
+		auto check_neighbor = [reader = reader, volume_check](auto c, auto dir) {
+			auto defs = reader(*c, dir);
+			for (auto&& d: defs) {
+				if (d.cull_neighbor) {
+					return true;
+				}
+			}
+
+			return false;
+		};
+
 		vertex vert;
-		auto volume = volume_begin;
-		for (vert.z = 0; vert.z < bd; ++vert.z) {
+		auto volume = volume_begin + bh * bw;
+		for (vert.z = 1; vert.z < bd - 1; ++vert.z) {
 			for (vert.y = 0; vert.y < bh; ++vert.y) {
 				for (vert.x = 0; vert.x < bw; ++vert.x, ++volume) {
-					auto vi = volume - volume_begin;
+					
 					const bool in_bounds = is_in_bounds(vert);
+					if (!in_bounds) {
+						continue;
+					}
+
 					auto state = volume_check(volume);
+					if (!state) {
+						continue;
+					}
 
-					auto &&[nb, n, ni] = find_boundries(vert, volume_begin, volume_check);
+					auto &&[nb, n, ni, cull] = find_boundries(vert, volume_begin, volume_check, check_neighbor);
 
-					for (auto d = 0; d < boundry::count; ++d) {
-						if (state == n[d]) {
+					static constexpr auto size = static_cast<size_t>(voxel_face::_count);
+					for (auto d = 0; d < size; ++d) {
+						if (state == n[d] && cull[d]) {
 							// there hasn't been a change in state in this direction
 							continue;
 						}
 
-						if (!in_bounds && !nb[d]) {
-							continue;
-						}
-
-						auto vox = state == true ? volume : volume_begin + ni[d];
-
 						static const vertex remove_border{ 1.0, 1.0, 1.0 };
 
-						add_quad(d, state, vert - remove_border, quads, vox, readers);
+						add_quad(d, state, vert - remove_border, quads, volume, reader);
 					}
 				}
 			}
@@ -118,49 +130,30 @@ class WEAVER_API culling {
 		return result;
 	}
 
-	template <typename Iter, typename T, typename VertInsert>
+	template <typename Iter, typename T>
 	auto add_quad(int32_t direction, bool state, const vertex &vert, std::vector<quad> &quads, Iter current_vox, reader_t<T>& reader) const
 	{
-		constexpr auto dir = build_directions();
-
-		vertex delta{0.0,0.0,0.0};
-		if (!state) {
-			// need to add a delta because when the state is false
-			// that means we are drawing from a neighbor not this voxel
-			switch(direction) {
-				case boundry::r: delta = { 1.0, 0.0, 0.0 }; break;
-				case boundry::f: delta = { 0.0, 1.0, 0.0 }; break;
-				case boundry::u: delta = { 0.0, 0.0, 1.0 }; break;
-			}
-		}
-
 		auto faces = cube_faces;
-		auto index = direction + (state ? 0 : 3);
-
-		auto voxel_defintion = reader(*current_vox, static_cast<voxel_face>(index));
+		static constexpr auto size = static_cast<size_t>(voxel_face::_count);
+		auto d = direction;
+		auto dir = static_cast<voxel_face>(d);
+		auto voxel_defintion = reader(*current_vox, dir);
 		auto type_id = reader(*current_vox);
 		
-		auto base_face = faces[index];
+		auto base_face = faces[d];
 		base_face.normal.normalize_quick();
-		
+
 		for (auto&& def: voxel_defintion)
 		{
-			vector3d& min{def.min};
-			vector3d& max{def.max};
 			auto face = base_face;
 
-			face[0] = clamp(base_face[0], min, max);
-			face[1] = clamp(base_face[1], min, max);
-			face[2] = clamp(base_face[2], min, max);
-			face[3] = clamp(base_face[3], min, max);
-			
+			base_face.for_each([&vert, &face, &def](auto i, auto&& p, auto&& uv) {
+				face[i] = clamp(p, def.min, def.max);
+				face[i] += vert + def.translate;
+			});				
 
-			for (auto& v: face) {
-				v += vert + delta + def.translate;
-			}	
 			quads.emplace_back(face);
 		}
-
 	}
 
 	auto calc_index(const vertex &vert) const
@@ -169,32 +162,35 @@ class WEAVER_API culling {
 		return i.z * (width + 2) * (height + 2) + i.y * (width + 2) + i.x;
 	};
 
-	template <typename Iter, typename VolumeCheck>
+	template <typename Iter, typename VolumeCheck, typename CullingCheck>
 	auto find_boundries(const vertex &vert, Iter volume,
-			    VolumeCheck &&volume_check) const
+			    VolumeCheck &&volume_check, CullingCheck &&cull_check) const
 	{
-		std::array<vector3d, 3> nc{ vert + vertex{ 1.0 }, vert + vertex{ 0.0, 1.0 },
-					    vert + vertex{ 0.0, 0.0, 1.0 } };
-
-		std::array<int32_t, 3> ni{
-			calc_index(nc[0]),
-			calc_index(nc[1]),
-			calc_index(nc[2]),
+		static constexpr auto size = static_cast<size_t>(voxel_face::_count);
+		std::array<vector3d, size> nc{
+			vert + vertex{ 1.0 }, // Right
+			vert + vertex{ 0.0, 1.0 }, // Back
+			vert + vertex{ 0.0, 0.0, 1.0 }, // Top
+			vert + vertex{ -1.0 }, // Left
+			vert + vertex{ 0.0, -1.0 }, // Front
+			vert + vertex{ 0.0, 0.0, -1.0 }, // Bottom
 		};
+		std::array<int32_t, size> ni{};
+		std::array<bool, size> nb{};
+		std::array<bool, size> n{};
+		std::array<bool, size> cull_n{};
 
-		std::array<bool, 3> nb{
-			is_in_bounds(nc[0]),
-			is_in_bounds(nc[1]),
-			is_in_bounds(nc[2]),
-		};
+		for (auto i = 0; i < ni.size(); ++i)
+		{
+			ni[i] = calc_index(nc[i]);
+			nb[i] = is_in_bounds(nc[i]);
+			n[i] = volume_check(volume + ni[i]);
 
-		std::array<bool, 3> n{
-			volume_check(volume + ni[0]),
-			volume_check(volume + ni[1]),
-			volume_check(volume + ni[2]),
-		};
+			voxel_face face = static_cast<voxel_face>((i + 3) % size);
+			cull_n[i] = n[i] && cull_check(volume + ni[i], face);
+		}
 
-		return std::make_tuple(nb, n, ni);
+		return std::make_tuple(nb, n, ni, cull_n);
 	}
 
 	auto is_in_bounds(const vertex &v) const
@@ -203,18 +199,6 @@ class WEAVER_API culling {
 		       (1.0 <= v.y && v.y <= static_cast<int32_t>(height)) &&
 		       (1.0 <= v.z && v.z <= static_cast<int32_t>(depth));
 	}
-
-	static constexpr auto build_directions()
-	{
-		std::array<std::array<vector3d, 2>, 3> result;
-
-		for (auto i = 0; i < 3; ++i) {
-			result[i][0][(i + 1) % 3] = 1;
-			result[i][1][(i + 2) % 3] = 1;
-		}
-
-		return result;
-	};
 };
 } // namespace tc
 

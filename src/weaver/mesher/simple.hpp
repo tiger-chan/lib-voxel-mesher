@@ -82,8 +82,8 @@ class WEAVER_API simple {
 		};
 
 		vertex vert;
-		auto volume = volume_begin;
-		for (vert.z = 0; vert.z < bd; ++vert.z) {
+		auto volume = volume_begin + bh * bw;
+		for (vert.z = 1; vert.z < bd - 1; ++vert.z) {
 			for (vert.y = 0; vert.y < bh; ++vert.y) {
 				for (vert.x = 0; vert.x < bw; ++vert.x, ++volume) {
 					auto vi = volume - volume_begin;
