@@ -10,26 +10,26 @@
 
 namespace tc
 {
-template <typename data_t> struct WEAVER_API base_vector2 {
+template <typename Data> struct WEAVER_API base_vector2 {
 	constexpr base_vector2() = default;
 
-	constexpr base_vector2(data_t x, data_t y) : x{ x }, y{ y }
+	explicit constexpr base_vector2(Data x, Data y = 0) : x{ x }, y{ y }
 	{
 	}
 
 	template <typename Other>
 	constexpr base_vector2(const base_vector2<Other> &other)
-		: x{ static_cast<data_t>(other.x) }, y{ static_cast<data_t>(other.y) }
+		: x{ static_cast<Data>(other.x) }, y{ static_cast<Data>(other.y) }
 	{
 	}
 
 	template <typename Other>
-	constexpr base_vector2(const Other &other)
-		: x{ static_cast<data_t>(other.X) }, y{ static_cast<data_t>(other.Y) }
+	explicit constexpr base_vector2(const Other &other)
+		: x{ static_cast<Data>(other.X) }, y{ static_cast<Data>(other.Y) }
 	{
 	}
 
-	constexpr const data_t &operator[](size_t i) const
+	constexpr const Data &operator[](size_t i) const
 	{
 		WEAVER_ASSERT(i > 1);
 		switch (i) {
@@ -40,9 +40,9 @@ template <typename data_t> struct WEAVER_API base_vector2 {
 		}
 	}
 
-	constexpr data_t &operator[](size_t i)
+	constexpr Data &operator[](size_t i)
 	{
-		return const_cast<data_t &>(std::as_const(*this)[i]);
+		return const_cast<Data &>(std::as_const(*this)[i]);
 	}
 
 	constexpr base_vector2 operator-() const
@@ -50,8 +50,7 @@ template <typename data_t> struct WEAVER_API base_vector2 {
 		return base_vector2{ -x, -y };
 	}
 
-	template<typename Numeric, std::enable_if_t<std::is_arithmetic_v<Numeric>, int32_t> = 0>
-	constexpr base_vector2 &operator+=(const Numeric &scalar)
+	constexpr base_vector2 &operator+=(const Data &scalar)
 	{
 		x += scalar;
 		y += scalar;
@@ -59,15 +58,7 @@ template <typename data_t> struct WEAVER_API base_vector2 {
 		return *this;
 	}
 
-	template<typename Numeric, std::enable_if_t<std::is_arithmetic_v<Numeric>, int32_t> = 0>
-	constexpr base_vector2 &operator+(const Numeric &scalar)
-	{
-		auto orig = *this;
-		return orig *= scalar;
-	}
-
-	template<typename Numeric, std::enable_if_t<std::is_arithmetic_v<Numeric>, int32_t> = 0>
-	constexpr base_vector2 &operator-=(const Numeric &scalar)
+	constexpr base_vector2 &operator-=(const Data &scalar)
 	{
 		x -= scalar;
 		y -= scalar;
@@ -75,15 +66,7 @@ template <typename data_t> struct WEAVER_API base_vector2 {
 		return *this;
 	}
 
-	template<typename Numeric, std::enable_if_t<std::is_arithmetic_v<Numeric>, int32_t> = 0>
-	constexpr base_vector2 &operator-(const Numeric &scalar)
-	{
-		auto orig = *this;
-		return orig -= scalar;
-	}
-
-	template<typename Numeric, std::enable_if_t<std::is_arithmetic_v<Numeric>, int32_t> = 0>
-	constexpr base_vector2 &operator/=(const Numeric &scalar)
+	constexpr base_vector2 &operator/=(const Data &scalar)
 	{
 		x /= scalar;
 		y /= scalar;
@@ -91,15 +74,7 @@ template <typename data_t> struct WEAVER_API base_vector2 {
 		return *this;
 	}
 
-	template<typename Numeric, std::enable_if_t<std::is_arithmetic_v<Numeric>, int32_t> = 0>
-	constexpr base_vector2 &operator/(const Numeric &scalar)
-	{
-		auto orig = *this;
-		return orig /= scalar;
-	}
-
-	template<typename Numeric, std::enable_if_t<std::is_arithmetic_v<Numeric>, int32_t> = 0>
-	constexpr base_vector2 &operator*=(const Numeric &scalar)
+	constexpr base_vector2 &operator*=(const Data &scalar)
 	{
 		x *= scalar;
 		y *= scalar;
@@ -107,8 +82,25 @@ template <typename data_t> struct WEAVER_API base_vector2 {
 		return *this;
 	}
 
-	template<typename Numeric, std::enable_if_t<std::is_arithmetic_v<Numeric>, int32_t> = 0>
-	constexpr base_vector2 &operator*(const Numeric &scalar)
+	constexpr base_vector2 &operator+(const Data &scalar) const
+	{
+		auto orig = *this;
+		return orig *= scalar;
+	}
+
+	constexpr base_vector2 &operator-(const Data &scalar) const
+	{
+		auto orig = *this;
+		return orig -= scalar;
+	}
+
+	constexpr base_vector2 &operator/(const Data &scalar) const
+	{
+		auto orig = *this;
+		return orig /= scalar;
+	}
+
+	constexpr base_vector2 &operator*(const Data &scalar) const
 	{
 		auto orig = *this;
 		return orig *= scalar;
@@ -170,7 +162,7 @@ template <typename data_t> struct WEAVER_API base_vector2 {
 		return orig /= other;
 	}
 
-	constexpr data_t dot(const base_vector2 &other) const
+	constexpr Data dot(const base_vector2 &other) const
 	{
 		return x * other.x + y * other.y;
 	}
@@ -220,8 +212,8 @@ template <typename data_t> struct WEAVER_API base_vector2 {
 		return orig;
 	}
 
-	data_t x{ 0 };
-	data_t y{ 0 };
+	Data x{ 0 };
+	Data y{ 0 };
 };
 
 using vector2d = base_vector2<double>;

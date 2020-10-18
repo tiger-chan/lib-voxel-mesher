@@ -11,14 +11,11 @@
 
 namespace tc
 {
-template<typename Type>
-class WEAVER_API simple {
-	template<typename T>
-	using reader_t = weaver::voxel_reader<T>;
+template <typename Type> class WEAVER_API simple {
+	template <typename T> using reader_t = weaver::voxel_reader<T>;
 	enum boundry { r = 0, f = 1, u = 2, count = 3 };
 
     public:
-
 	template <typename Iter>
 	mesher_result eval(Iter volume_begin, Iter volume_end, reader_t<Type> reader = {}) const
 	{
@@ -30,7 +27,7 @@ class WEAVER_API simple {
 			int32_t bh{ dh + 2 };
 			int32_t bd{ dd + 2 };
 
-			std::vector<Type*> volume;
+			std::vector<Type *> volume;
 			volume.resize(bw * bh * bd, nullptr);
 			for (auto z = 0; z < dd; ++z) {
 				auto zb = (z + 1) * bh * bw;
@@ -46,7 +43,8 @@ class WEAVER_API simple {
 				}
 			}
 
-			return work(std::begin(volume), std::end(volume), reader_t<Type*>{reader});
+			return work(std::begin(volume), std::end(volume),
+				    reader_t<Type *>{ reader });
 		} else {
 			return work(volume_begin, volume_end, reader);
 		}
@@ -105,8 +103,7 @@ class WEAVER_API simple {
 		return result;
 	}
 
-	private:
-
+    private:
 	auto is_in_bounds(const vertex &v) const
 	{
 		return (1.0 <= v.x && v.x <= static_cast<int32_t>(width)) &&
@@ -115,37 +112,38 @@ class WEAVER_API simple {
 	}
 
 	template <typename Iter, typename T>
-	auto add_quads(const vertex &vert, std::vector<quad> &quads, Iter current_vox, reader_t<T>& reader) const
+	auto add_quads(const vertex &vert, std::vector<quad> &quads, Iter current_vox,
+		       reader_t<T> &reader) const
 	{
 		auto faces = cube_faces;
+		auto type_id = reader(*current_vox);
 
 		for (auto d = 0; d < 3; ++d) {
 			for (auto side = 0; side < 2; ++side) {
 				auto state = side == 1;
-				
+
 				auto index = d + (state ? 0 : 3);
 
-				auto voxel_defintion = reader(*current_vox, static_cast<voxel_face>(index));
-				auto type_id = reader(*current_vox);
-				
+				auto voxel_defintion =
+					reader(*current_vox, static_cast<voxel_face>(index));
+
 				auto base_face = faces[index];
 				base_face.normal.normalize_quick();
+				base_face.type_id = type_id;
 
-				for (auto&& def: voxel_defintion)
-				{
-					vector3d min{def.min};
-					vector3d max{def.max};
+				for (auto &&def : voxel_defintion) {
 					auto face = base_face;
 
-					face[0] = clamp(base_face[0], min, max);
-					face[1] = clamp(base_face[1], min, max);
-					face[2] = clamp(base_face[2], min, max);
-					face[3] = clamp(base_face[3], min, max);
-					
+					std::array<vector2d, 2> uv_space { };
+					uv_space[0] = weaver::lerp(base_face.uv[0], base_face.uv[2], def.uv_min); // bottom left
+					uv_space[1] = weaver::lerp(base_face.uv[0], base_face.uv[2], def.uv_max); // top right
 
-					for (auto& v: face) {
-						v += vert + def.translate;
-					}
+					face.for_each([&vert, &base_face, &uv_space, &def](auto i, auto &&p, auto &&uv) {
+						p = clamp(base_face[i], def.min, def.max);
+						p += vert + def.translate;
+						uv = weaver::lerp(uv_space[0], uv_space[1], 1 - uv);
+					});
+
 					quads.emplace_back(face);
 				}
 			}

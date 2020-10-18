@@ -13,14 +13,11 @@
 
 namespace tc
 {
-template<typename Type>
-class WEAVER_API culling {
-	template<typename T>
-	using reader_t = weaver::voxel_reader<T>;
+template <typename Type> class WEAVER_API culling {
+	template <typename T> using reader_t = weaver::voxel_reader<T>;
 	enum boundry { r = 0, f = 1, u = 2, count = 3 };
 
     public:
-
 	template <typename Iter>
 	mesher_result eval(Iter volume_begin, Iter volume_end, reader_t<Type> reader = {}) const
 	{
@@ -32,7 +29,7 @@ class WEAVER_API culling {
 			int32_t bh{ dh + 2 };
 			int32_t bd{ dd + 2 };
 
-			std::vector<Type*> volume;
+			std::vector<Type *> volume;
 			volume.resize(bw * bh * bd, nullptr);
 			for (auto z = 0; z < dd; ++z) {
 				auto zb = (z + 1) * bh * bw;
@@ -48,7 +45,8 @@ class WEAVER_API culling {
 				}
 			}
 
-			return work(std::begin(volume), std::end(volume), reader_t<Type*>{reader});
+			return work(std::begin(volume), std::end(volume),
+				    reader_t<Type *>{ reader });
 		} else {
 			return work(volume_begin, volume_end, reader);
 		}
@@ -85,7 +83,7 @@ class WEAVER_API culling {
 
 		auto check_neighbor = [reader = reader, volume_check](auto c, auto dir) {
 			auto defs = reader(*c, dir);
-			for (auto&& d: defs) {
+			for (auto &&d : defs) {
 				if (d.cull_neighbor) {
 					return true;
 				}
@@ -99,7 +97,6 @@ class WEAVER_API culling {
 		for (vert.z = 1; vert.z < bd - 1; ++vert.z) {
 			for (vert.y = 0; vert.y < bh; ++vert.y) {
 				for (vert.x = 0; vert.x < bw; ++vert.x, ++volume) {
-					
 					const bool in_bounds = is_in_bounds(vert);
 					if (!in_bounds) {
 						continue;
@@ -110,9 +107,12 @@ class WEAVER_API culling {
 						continue;
 					}
 
-					auto &&[nb, n, ni, cull] = find_boundries(vert, volume_begin, volume_check, check_neighbor);
+					auto &&[nb, n, ni, cull] = find_boundries(
+						vert, volume_begin, volume_check, check_neighbor);
 
-					static constexpr auto size = static_cast<size_t>(voxel_face::_count);
+					auto type_id = reader(*volume);
+					static constexpr auto size =
+						static_cast<size_t>(voxel_face::_count);
 					for (auto d = 0; d < size; ++d) {
 						if (state == n[d] && cull[d]) {
 							// there hasn't been a change in state in this direction
@@ -121,7 +121,8 @@ class WEAVER_API culling {
 
 						static const vertex remove_border{ 1.0, 1.0, 1.0 };
 
-						add_quad(d, state, vert - remove_border, quads, volume, reader);
+						add_quad(d, state, vert - remove_border, quads,
+							 type_id, volume, reader);
 					}
 				}
 			}
@@ -131,26 +132,31 @@ class WEAVER_API culling {
 	}
 
 	template <typename Iter, typename T>
-	auto add_quad(int32_t direction, bool state, const vertex &vert, std::vector<quad> &quads, Iter current_vox, reader_t<T>& reader) const
+	auto add_quad(int32_t direction, bool state, const vertex &vert, std::vector<quad> &quads,
+		      weaver::voxel_id_t type_id, Iter current_vox, reader_t<T> &reader) const
 	{
 		auto faces = cube_faces;
 		static constexpr auto size = static_cast<size_t>(voxel_face::_count);
 		auto d = direction;
 		auto dir = static_cast<voxel_face>(d);
 		auto voxel_defintion = reader(*current_vox, dir);
-		auto type_id = reader(*current_vox);
-		
+
 		auto base_face = faces[d];
 		base_face.normal.normalize_quick();
+		base_face.type_id = type_id;
 
-		for (auto&& def: voxel_defintion)
-		{
+		for (auto &&def : voxel_defintion) {
 			auto face = base_face;
 
-			base_face.for_each([&vert, &face, &def](auto i, auto&& p, auto&& uv) {
-				face[i] = clamp(p, def.min, def.max);
-				face[i] += vert + def.translate;
-			});				
+			std::array<vector2d, 2> uv_space { };
+			uv_space[0] = weaver::lerp(base_face.uv[0], base_face.uv[2], def.uv_min); // bottom left
+			uv_space[1] = weaver::lerp(base_face.uv[0], base_face.uv[2], def.uv_max); // top right
+
+			face.for_each([&vert, &base_face, &uv_space, &def](auto i, auto &&p, auto &&uv) {
+				p = clamp(base_face[i], def.min, def.max);
+				p += vert + def.translate;
+				uv = weaver::lerp(uv_space[0], uv_space[1], 1 - uv);
+			});
 
 			quads.emplace_back(face);
 		}
@@ -163,8 +169,8 @@ class WEAVER_API culling {
 	};
 
 	template <typename Iter, typename VolumeCheck, typename CullingCheck>
-	auto find_boundries(const vertex &vert, Iter volume,
-			    VolumeCheck &&volume_check, CullingCheck &&cull_check) const
+	auto find_boundries(const vertex &vert, Iter volume, VolumeCheck &&volume_check,
+			    CullingCheck &&cull_check) const
 	{
 		static constexpr auto size = static_cast<size_t>(voxel_face::_count);
 		std::array<vector3d, size> nc{
@@ -180,8 +186,7 @@ class WEAVER_API culling {
 		std::array<bool, size> n{};
 		std::array<bool, size> cull_n{};
 
-		for (auto i = 0; i < ni.size(); ++i)
-		{
+		for (auto i = 0; i < ni.size(); ++i) {
 			ni[i] = calc_index(nc[i]);
 			nb[i] = is_in_bounds(nc[i]);
 			n[i] = volume_check(volume + ni[i]);
