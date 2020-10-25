@@ -12,10 +12,11 @@
 namespace tc
 {
 template <typename Type> class WEAVER_API simple {
-	template <typename T> using reader_t = weaver::voxel_reader<T>;
 	enum boundry { r = 0, f = 1, u = 2, count = 3 };
 
     public:
+	template <typename T> using reader_t = weaver::voxel_reader<T>;
+	
 	template <typename Iter>
 	mesher_result eval(Iter volume_begin, Iter volume_end, reader_t<Type> reader = {}) const
 	{
@@ -135,8 +136,8 @@ template <typename Type> class WEAVER_API simple {
 					auto face = base_face;
 
 					std::array<vector2d, 2> uv_space { };
-					uv_space[0] = weaver::lerp(base_face.uv[0], base_face.uv[2], def.uv_min); // bottom left
-					uv_space[1] = weaver::lerp(base_face.uv[0], base_face.uv[2], def.uv_max); // top right
+					uv_space[0] = weaver::lerp(base_face.uv[0], base_face.uv[2], def.component.uv_min); // bottom left
+					uv_space[1] = weaver::lerp(base_face.uv[0], base_face.uv[2], def.component.uv_max); // top right
 
 					face.for_each([&vert, &base_face, &uv_space, &def](auto i, auto &&p, auto &&uv) {
 						p = clamp(base_face[i], def.min, def.max);

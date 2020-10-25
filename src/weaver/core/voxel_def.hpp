@@ -3,20 +3,19 @@
 
 #include "../config/config.hpp"
 #include "attributes.hpp"
+#include "voxel_face.hpp"
 #include "vector3.hpp"
+#include "voxel_component_def.hpp"
+#include <vector>
 
 namespace tc
 {
+
 struct WEAVER_API voxel_def
 {
-	vector3d min{ 0.0, 0.0, 0.0 };
-	vector3d max{ 1.0, 1.0, 1.0 };
-	vector3d translate{ 0.0, 0.0, 0.0 };
-	bool cull_neighbor{ true };
-
-	vector2d uv_min{ 0.0, 0.0 };
-	vector2d uv_max{ 1.0, 1.0 };
+	std::vector<voxel_component_def> components;
 };
+
 } // namespace tc
 
 #endif // WEAVER_CORE_VOXEL_DEF_HPP

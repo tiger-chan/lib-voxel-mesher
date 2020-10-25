@@ -5,8 +5,8 @@
 #include "../core/attributes.hpp"
 #include "../core/fwd.hpp"
 #include "../core/quad.hpp"
-#include "../core/voxel_def.hpp"
 #include "../core/voxel_face.hpp"
+#include "voxel_face_result.hpp"
 
 namespace tc
 {
@@ -23,9 +23,9 @@ template <typename Type> struct WEAVER_API voxel_reader {
 		return unset_voxel_id;
 	}
 
-	std::vector<voxel_def> operator()(const Type &, voxel_face vf) const
+	std::vector<voxel_face_result> operator()(const Type &, voxel_face vf) const
 	{
-		return std::vector<voxel_def>{ voxel_def{} };
+		return std::vector<voxel_face_result>{ voxel_face_result{} };
 	}
 };
 
@@ -40,9 +40,9 @@ template <typename Type> struct voxel_reader<Type *> {
 		return v == nullptr ? unset_voxel_id : reader(*v);
 	}
 
-	inline std::vector<voxel_def> operator()(const Type *v, voxel_face vf) const
+	inline std::vector<voxel_face_result> operator()(const Type *v, voxel_face vf) const
 	{
-		return v == nullptr ? std::vector<voxel_def>{ voxel_def{} } : reader(*v, vf);
+		return v == nullptr ? std::vector<voxel_face_result>{ voxel_face_result{} } : reader(*v, vf);
 	}
 
 	voxel_reader<Type> reader{};
