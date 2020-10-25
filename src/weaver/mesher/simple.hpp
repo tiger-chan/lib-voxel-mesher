@@ -134,10 +134,11 @@ template <typename Type> class WEAVER_API simple {
 
 				for (auto &&def : voxel_defintion) {
 					auto face = base_face;
+					face.material_id = def.material;
 
 					std::array<vector2d, 2> uv_space { };
-					uv_space[0] = weaver::lerp(base_face.uv[0], base_face.uv[2], def.component.uv_min); // bottom left
-					uv_space[1] = weaver::lerp(base_face.uv[0], base_face.uv[2], def.component.uv_max); // top right
+					uv_space[0] = weaver::lerp(base_face.uv[0], base_face.uv[2], def.uv_min); // bottom left
+					uv_space[1] = weaver::lerp(base_face.uv[0], base_face.uv[2], def.uv_max); // top right
 
 					face.for_each([&vert, &base_face, &uv_space, &def](auto i, auto &&p, auto &&uv) {
 						p = clamp(base_face[i], def.min, def.max);

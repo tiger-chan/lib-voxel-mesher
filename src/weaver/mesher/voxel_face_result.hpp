@@ -16,7 +16,10 @@ namespace weaver
 		vector3d min{ 0.0, 0.0, 0.0 };
 		vector3d max{ 1.0, 1.0, 1.0 };
 		vector3d translate{ 0.0, 0.0, 0.0 };
-		face_def component;
+		vector2d uv_min{ 0.0, 0.0 };
+		vector2d uv_max{ 1.0, 1.0 };
+		std::string_view material{};
+		bool cull{ true };
 	};
 }
 }
