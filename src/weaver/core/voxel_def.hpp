@@ -14,6 +14,8 @@ namespace tc
 struct WEAVER_API voxel_def
 {
 	std::vector<voxel_component_def> components;
+	std::string name;
+	weaver::voxel_id_t type;
 };
 
 } // namespace tc
