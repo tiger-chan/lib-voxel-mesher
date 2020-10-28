@@ -44,6 +44,9 @@ template <typename Data> struct WEAVER_API base_vector3 {
 		case 2:
 			return z;
 		}
+
+		// cannot happen
+		return x;
 	}
 
 	constexpr Data &operator[](size_t i)
